@@ -1,0 +1,305 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum ExamType {
+  QUIZ
+  ASSIGNMENT
+  MIDTERM
+  FINAL
+  PROJECT
+}
+
+enum FeeStatus {
+  PAID
+  PENDING
+  OVERDUE
+  PARTIAL
+}
+
+enum NoticePriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NoticeTarget {
+  ALL
+  TEACHER
+  STUDENT
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+model User {
+  id           String          @id @default(uuid())
+  email        String          @unique
+  passwordHash String
+  role         Role            @default(STUDENT)
+  firstName    String
+  lastName     String
+  phone        String?
+  avatarUrl    String?
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  adminProfile   AdminProfile?
+  teacherProfile TeacherProfile?
+  studentProfile StudentProfile?
+  announcements  Announcement[]  @relation("AuthorAnnouncements")
+
+  @@index([email, role])
+}
+
+model AdminProfile {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department String   @default("Administration")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model TeacherProfile {
+  id             String            @id @default(uuid())
+  userId         String            @unique
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId     String            @unique
+  qualification  String
+  specialization String
+  joiningDate    DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  subjects       Subject[]
+  sections       Section[]         @relation("ClassTeacher")
+  timetableSlots TimetablePeriod[]
+  attendances    Attendance[]      @relation("RecordedAttendances")
+}
+
+model StudentProfile {
+  id              String         @id @default(uuid())
+  userId          String         @unique
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admissionNumber String         @unique
+  rollNumber      Int
+  dob             DateTime
+  gender          Gender         @default(MALE)
+  bloodGroup      String?
+  address         String?
+  parentName      String
+  parentPhone     String
+  parentEmail     String?
+  emergencyPhone  String?
+
+  classId         String
+  class           Class          @relation(fields: [classId], references: [id], onDelete: Restrict)
+  sectionId       String
+  section         Section        @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  attendances     Attendance[]
+  grades          Grade[]
+  feeInvoices     FeeInvoice[]
+
+  @@unique([classId, sectionId, rollNumber])
+  @@index([classId, sectionId])
+}
+
+model Class {
+  id           String            @id @default(uuid())
+  name         String            @unique // e.g., "Grade 9", "Grade 10"
+  numericGrade Int               // 9, 10
+  description  String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  sections     Section[]
+  students     StudentProfile[]
+  subjects     Subject[]
+  exams        Exam[]
+  timetables   TimetablePeriod[]
+}
+
+model Section {
+  id             String            @id @default(uuid())
+  name           String            // "A", "B", "C"
+  classId        String
+  class          Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classTeacherId String?
+  classTeacher   TeacherProfile?   @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  students       StudentProfile[]
+  timetables     TimetablePeriod[]
+
+  @@unique([classId, name])
+}
+
+model Subject {
+  id          String            @id @default(uuid())
+  name        String            // "Mathematics", "Physics"
+  code        String            @unique // "MATH101"
+  classId     String
+  class       Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherId   String?
+  teacher     TeacherProfile?   @relation(fields: [teacherId], references: [id])
+  creditHours Int               @default(3)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  timetables  TimetablePeriod[]
+  exams       Exam[]
+
+  @@index([classId, teacherId])
+}
+
+model TimetablePeriod {
+  id          String         @id @default(uuid())
+  dayOfWeek   DayOfWeek
+  startTime   String         // e.g. "08:30"
+  endTime     String         // e.g. "09:15"
+  roomNumber  String         // e.g. "Room 204"
+
+  classId     String
+  class       Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sectionId   String
+  section     Section        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId   String
+  teacher     TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([classId, sectionId, dayOfWeek])
+  @@index([teacherId, dayOfWeek])
+}
+
+model Attendance {
+  id           String           @id @default(uuid())
+  date         DateTime         @default(now())
+  status       AttendanceStatus @default(PRESENT)
+  studentId    String
+  student      StudentProfile   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recordedById String?
+  recordedBy   TeacherProfile?  @relation("RecordedAttendances", fields: [recordedById], references: [id])
+  remarks      String?
+
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([studentId, date])
+  @@index([date, status])
+}
+
+model Exam {
+  id          String    @id @default(uuid())
+  title       String    // e.g. "Mid-Term Examination 2026"
+  type        ExamType  @default(MIDTERM)
+  term        String    // e.g. "Spring 2026"
+  maxMarks    Float     @default(100)
+  passingMarks Float    @default(40)
+  examDate    DateTime
+
+  subjectId   String
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classId     String
+  class       Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  grades      Grade[]
+
+  @@index([classId, subjectId])
+}
+
+model Grade {
+  id            String         @id @default(uuid())
+  marksObtained Float
+  gradeLetter   String         // e.g. "A+", "A", "B", "C", "F"
+  comments      String?
+
+  examId        String
+  exam          Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([examId, studentId])
+  @@index([studentId])
+}
+
+model FeeInvoice {
+  id            String         @id @default(uuid())
+  invoiceNumber String         @unique // "INV-2026-001"
+  title         String         // "Term 1 Tuition Fee"
+  amount        Float
+  dueDate       DateTime
+  status        FeeStatus      @default(PENDING)
+  paidAmount    Float          @default(0)
+  paidDate      DateTime?
+  paymentMethod String?        // "Credit Card", "Bank Transfer", "Cash"
+  notes         String?
+
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([studentId, status])
+}
+
+model Announcement {
+  id         String         @id @default(uuid())
+  title      String
+  content    String
+  targetRole NoticeTarget   @default(ALL)
+  priority   NoticePriority @default(MEDIUM)
+  authorId   String
+  author     User           @relation("AuthorAnnouncements", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([targetRole, createdAt])
+}

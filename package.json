@@ -1,0 +1,32 @@
+{
+  "name": "edupulse-school-management-system",
+  "version": "1.0.0",
+  "description": "Enterprise-grade Full-Stack School Management System built with React, Node.js, Express, TypeScript, and PostgreSQL.",
+  "main": "server/src/server.ts",
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix server && npm run build --prefix client",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "db:migrate": "npm run db:migrate --prefix server",
+    "db:seed": "npm run db:seed --prefix server",
+    "db:studio": "npm run db:studio --prefix server"
+  },
+  "keywords": [
+    "school-management-system",
+    "react",
+    "nodejs",
+    "express",
+    "typescript",
+    "postgresql",
+    "prisma",
+    "tailwind-css",
+    "role-based-access-control"
+  ],
+  "author": "iTech",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
