@@ -114,30 +114,30 @@ The database is built on **PostgreSQL** using **Prisma ORM** with 13 relational 
 
 ```mermaid
 erDiagram
-    User ||--o| AdminProfile : "has"
-    User ||--o| TeacherProfile : "has"
-    User ||--o| StudentProfile : "has"
-    User ||--o{ Announcement : "publishes"
+    USER ||--o| ADMIN_PROFILE : "has"
+    USER ||--o| TEACHER_PROFILE : "has"
+    USER ||--o| STUDENT_PROFILE : "has"
+    USER ||--o{ ANNOUNCEMENT : "publishes"
 
-    Class ||--|{ Section : "contains"
-    Class ||--|{ Subject : "teaches"
-    Class ||--o{ StudentProfile : "enrolled"
-    Section ||--o{ StudentProfile : "assigned"
+    ACADEMIC_CLASS ||--o{ SECTION : "contains"
+    ACADEMIC_CLASS ||--o{ SUBJECT : "offers"
+    ACADEMIC_CLASS ||--o{ STUDENT_PROFILE : "enrolls"
+    SECTION ||--o{ STUDENT_PROFILE : "groups"
 
-    TeacherProfile ||--o{ Subject : "instructs"
-    TeacherProfile ||--o{ Section : "class teacher"
-    TeacherProfile ||--o{ TimetablePeriod : "teaches"
+    TEACHER_PROFILE ||--o{ SUBJECT : "instructs"
+    TEACHER_PROFILE ||--o{ SECTION : "advises"
+    TEACHER_PROFILE ||--o{ TIMETABLE_PERIOD : "scheduled_for"
 
-    Class ||--o{ TimetablePeriod : "schedules"
-    Subject ||--o{ TimetablePeriod : "period subject"
+    ACADEMIC_CLASS ||--o{ TIMETABLE_PERIOD : "schedules"
+    SUBJECT ||--o{ TIMETABLE_PERIOD : "curriculum"
 
-    StudentProfile ||--o{ Attendance : "records"
-    StudentProfile ||--o{ Grade : "receives"
-    StudentProfile ||--o{ FeeInvoice : "billed"
+    STUDENT_PROFILE ||--o{ ATTENDANCE : "logs"
+    STUDENT_PROFILE ||--o{ GRADE : "earns"
+    STUDENT_PROFILE ||--o{ FEE_INVOICE : "billed_to"
 
-    Exam ||--o{ Grade : "evaluates"
-    Subject ||--o{ Exam : "assesses"
-    Class ||--o{ Exam : "holds"
+    EXAM ||--o{ GRADE : "records"
+    SUBJECT ||--o{ EXAM : "tests"
+    ACADEMIC_CLASS ||--o{ EXAM : "conducts"
 ```
 
 ---
