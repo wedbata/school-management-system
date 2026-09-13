@@ -55,6 +55,49 @@ export const createExam = async (req: Request, res: Response) => {
   }
 };
 
+export const updateExam = async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const { title, type, term, maxMarks, passingMarks, examDate, subjectId, classId } = req.body;
+
+    const exam = await prisma.exam.update({
+      where: { id },
+      data: {
+        title,
+        type,
+        term,
+        maxMarks: maxMarks ? parseFloat(maxMarks) : undefined,
+        passingMarks: passingMarks !== undefined ? parseFloat(passingMarks) : undefined,
+        examDate: examDate ? new Date(examDate) : undefined,
+        subjectId,
+        classId,
+      },
+      include: {
+        subject: true,
+        class: true,
+      },
+    });
+
+    return sendSuccess(res, 'Exam updated successfully', exam);
+  } catch (error: any) {
+    return sendError(res, 'Failed to update exam', 500, error.message);
+  }
+};
+
+export const deleteExam = async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+
+    await prisma.exam.delete({
+      where: { id },
+    });
+
+    return sendSuccess(res, 'Exam deleted successfully');
+  } catch (error: any) {
+    return sendError(res, 'Failed to delete exam', 500, error.message);
+  }
+};
+
 export const getExamGradebook = async (req: Request, res: Response) => {
   try {
     const examId = String(req.params.id);
@@ -148,10 +191,16 @@ export const recordBatchGrades = async (req: AuthenticatedRequest, res: Response
 
 export const getStudentReportCard = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    let studentId = req.params.studentId as string;
+    let studentId = (req.query.studentId as string) || (req.params.studentId as string);
 
-    if (req.user?.role === 'STUDENT') {
+    if (!studentId && req.user?.role === 'STUDENT') {
       studentId = req.user.profileId!;
+    }
+
+    if (!studentId) {
+      // Default to first student if admin/teacher requests without studentId
+      const firstStudent = await prisma.studentProfile.findFirst();
+      if (firstStudent) studentId = firstStudent.id;
     }
 
     if (!studentId) return sendError(res, 'Student ID required', 400);
@@ -198,6 +247,7 @@ export const getStudentReportCard = async (req: AuthenticatedRequest, res: Respo
 
     return sendSuccess(res, 'Student report card', {
       student: {
+        id: student.id,
         name: `${student.user.firstName} ${student.user.lastName}`,
         admissionNumber: student.admissionNumber,
         rollNumber: student.rollNumber,

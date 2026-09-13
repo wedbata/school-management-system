@@ -58,6 +58,32 @@ export const createNotice = async (req: AuthenticatedRequest, res: Response) => 
   }
 };
 
+export const updateNotice = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const { title, content, targetRole, priority } = req.body;
+
+    const notice = await prisma.announcement.update({
+      where: { id },
+      data: {
+        title,
+        content,
+        targetRole,
+        priority,
+      },
+      include: {
+        author: {
+          select: { firstName: true, lastName: true, role: true },
+        },
+      },
+    });
+
+    return sendSuccess(res, 'Announcement updated successfully', notice);
+  } catch (error: any) {
+    return sendError(res, 'Failed to update announcement', 500, error.message);
+  }
+};
+
 export const deleteNotice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);

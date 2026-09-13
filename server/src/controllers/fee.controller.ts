@@ -68,6 +68,50 @@ export const createFeeInvoice = async (req: Request, res: Response) => {
   }
 };
 
+export const updateFeeInvoice = async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const { title, amount, dueDate, notes, status } = req.body;
+
+    const invoice = await prisma.feeInvoice.update({
+      where: { id },
+      data: {
+        title,
+        amount: amount !== undefined ? parseFloat(amount) : undefined,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        notes,
+        status,
+      },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+          },
+        },
+      },
+    });
+
+    return sendSuccess(res, 'Fee invoice updated', invoice);
+  } catch (error: any) {
+    return sendError(res, 'Failed to update fee invoice', 500, error.message);
+  }
+};
+
+export const deleteFeeInvoice = async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+
+    await prisma.feeInvoice.delete({
+      where: { id },
+    });
+
+    return sendSuccess(res, 'Fee invoice deleted successfully');
+  } catch (error: any) {
+    return sendError(res, 'Failed to delete fee invoice', 500, error.message);
+  }
+};
+
 export const recordFeePayment = async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
@@ -95,6 +139,15 @@ export const recordFeePayment = async (req: Request, res: Response) => {
         paymentMethod,
         paidDate: new Date(),
         notes: notes || invoice.notes,
+      },
+      include: {
+        student: {
+          include: {
+            user: true,
+            class: true,
+            section: true,
+          },
+        },
       },
     });
 

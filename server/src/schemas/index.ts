@@ -90,3 +90,5 @@ export const announcementSchema = z.object({
   targetRole: z.enum(['ALL', 'TEACHER', 'STUDENT']),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']),
 });
+
+export const noticeCreateSchema = announcementSchema;
